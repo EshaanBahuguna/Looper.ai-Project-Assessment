@@ -45,7 +45,8 @@ const Book = mongoose.model('Book', {
     name: String, 
     image: Buffer, 
     type: String, 
-    description: String
+    description: String, 
+    issuedBy: String
 })
 
 // Setting up multer
@@ -242,6 +243,48 @@ app.post('/updateUserDetails/:userId', upload.single('userImage'), (req, res)=>{
         }
     })
 })
+
+app.post('/addBook', upload.single('bookImage'), (req, res)=>{
+    console.log(req.body, req.file);
+    let bookImage = fs.readFileSync(__dirname + '/public/images/book image.jpg'),
+        imageType = 'image/jpg';
+    let error = false, message;
+    
+    if(req.body.bookname.length === 0 || req.body.description.length === 0){
+        error = true;
+        message = 'Name & Description for the book are mandatory'
+    }
+    if(req.file !== undefined){
+        if(req.file.size / 1000000 >= 16){
+            error = true;
+            message = 'Image size should be less than 16 MB';
+        }
+        else{
+            bookImage = req.file.buffer;
+            imageType = req.file.mimetype;
+        }   
+    }
+    else{
+        if(!error){
+            // Save Book Details to DB
+            const newBook = new Book({
+                name: req.body.name, 
+                description: req.body.description, 
+                image: bookImage, 
+                type: imageType, 
+                issuedBy: null
+            });
+            newBook.save((err)=>{
+                if(!err){
+                    console.log('New Book was added to DB');
+                }
+            })
+        }
+    }
+
+    res.json({error: error, message: message});
+})
+
 app.listen(3000, ()=>{
     console.log('The server is running on PORT 3000');
 })
