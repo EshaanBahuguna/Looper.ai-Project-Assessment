@@ -1,0 +1,32 @@
+<%- include('./partials/header'); -%>
+
+<div class="mx-auto p-2" style="width: 28rem; margin-top: 20rem;">
+    <div class="card p-4">
+        <h2 class="text-center mt-3">Welcome</h2>
+        <form class="d-flex flex-column justify-content-center align-items-center px-0 mb-3">
+            <div class="mb-4">
+                <label for="email-id" class="mb-2">Email Address</label>
+                <input type="email" name="email" id="email-id" class="form-control p-2" style="width: 23.8rem">
+            </div>
+            <div class="mb-4">
+                <label for="password" class="mb-2">Password</label>
+                <input type="password" name="password" id="password" class="form-control p-2" style="width: 23.8rem">
+            </div>
+            <div class="d-grid col-12">
+                <button type="submit" class="btn btn-primary p-2">Login</button>
+            </div>
+        </form>
+        <div class="container mt-3">
+            <div class="row justify-content-end">
+                <p class="fw-semibold">Not a member yet?</p>
+            </div>
+            <div class="row">
+                <a class="text-success fw-bold" href="/sign-up">Sign-up</a>
+            </div>
+        </div>
+    </div>
+    <div class="alert alert-danger mt-3 text-center" style="display: none;" id="error">No such account exists with this email address</div>
+</div>
+<script src="/login.js"></script>
+<%- include('./partials/footer'); -%>
+    
