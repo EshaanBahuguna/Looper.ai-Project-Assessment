@@ -27,18 +27,24 @@ const User = mongoose.model('User', {
         firstname: String, 
         lastname: String, 
         userImage: Buffer, 
+        userImageType: String, 
         favouriteBooks: [
             {
                 name: String
             }
         ],
-        mobileNumber: Number, 
-        issuedBooks: Number
+        mobileNumber: Number,  
+        issuedBooks: [
+            {
+                _id : String
+            }
+        ]
     }
 })
 const Book = mongoose.model('Book', {
     name: String, 
     image: Buffer, 
+    type: String, 
     description: String
 })
 
@@ -58,7 +64,7 @@ app.get('/sign-up', (req, res)=>{
     res.render('sign-up');
 })
 
-app.get('/getAccountDetails/:email', (req, res)=>{
+app.get('/checkAccountExists/:email', (req, res)=>{
     User.findOne({"userCredentials.email": req.params.email}, (err, foundUser)=>{
         if(!err){
             let accountExists = false;
@@ -70,8 +76,50 @@ app.get('/getAccountDetails/:email', (req, res)=>{
     })
 })
 
-app.get('/home', (req, res)=>{
-    res.render('home');
+app.get('/home/:userId', (req, res)=>{
+    User.findById(req.params.userId.trim(), (err, foundUser)=>{
+        if(!err && foundUser !== null){
+            res.render('home', {userDetails: foundUser.userInfo, userId: foundUser._id});
+        }
+    })
+})
+
+app.get('/loadUserImage/:userId', (req, res)=>{
+    User.findById(req.params.userId.trim(), (err, foundUser)=>{
+        if(!err){
+            res.json({
+                image: foundUser.userInfo.userImage.toString('base64'), 
+                type: foundUser.userInfo.userImageType
+            })
+        }
+    })
+})
+
+app.get('/getIssuedBooks/:userId', (req, res)=>{
+    User.findById(req.params.userId.trim(), (err, foundUser)=>{
+        if(!err){
+            let userIssuedBooks = [];
+            foundUser.userInfo.issuedBooks.forEach((bookId)=>{
+                User.findById(bookId, (err, foundBook)=>{
+                    if(!err){
+                        userIssuedBooks.push({
+                            details: {
+                                _id: foundBook._id,
+                                name: foundBook.name, 
+                                description: foundBook.description
+                            }, 
+                            image: {
+                                data: foundBook.image.toString('base64'), 
+                                type: foundBook.type
+                            }
+                        })
+                    }
+                })
+            })
+
+            res.json({issuedBooks: userIssuedBooks});
+        }
+    })
 })
 
 // POST Requests
@@ -79,20 +127,21 @@ app.post('/login', (req, res)=>{
     User.findOne({"userCredentials.email": req.body.email}, (err, foundUser)=>{
         if(!err){
             bcrypt.compare(req.body.password, foundUser.userCredentials.password).then((result)=>{
-                console.log(req.body, result);
+                let userId;
                 let loginStatus = false;
                 if(result){
                     loginStatus = true;
+                    userId = foundUser._id;
                 }
                 
-                res.json({loginStatus: loginStatus});
+                res.json({loginStatus: loginStatus, userId: userId});
             })
         }
     })
 
 })
 
-app.post('/sign-up', upload.single('userId'), (req, res)=>{
+app.post('/sign-up', (req, res)=>{
     let userDetails = {
         userCredentials: {
             email: '', 
@@ -102,7 +151,10 @@ app.post('/sign-up', upload.single('userId'), (req, res)=>{
             firstname: '---', 
             lastname: '---', 
             userImage: fs.readFileSync(__dirname + '/public/images/user image.png'), 
-            issuedBooks: 0, 
+            userImageType: 'image/png',
+            favouriteBooks: [], 
+            issuedBooks: [], 
+            issuedBooksNumber: 0,
             mobileNumber: null
         }
     }
@@ -118,9 +170,6 @@ app.post('/sign-up', upload.single('userId'), (req, res)=>{
                 userDetails.userInfo.firstname = req.body.firstname; 
                 userDetails.userInfo.lastname = req.body.lastname; 
             }
-            if(req.file != undefined){
-                userDetails.userInfo.userImage = req.file.buffer;
-            }
             if(req.body.mobileNumber.length != 0){
                 userDetails.userInfo.mobileNumber = req.body.mobileNumber;
             }
@@ -135,9 +184,64 @@ app.post('/sign-up', upload.single('userId'), (req, res)=>{
             })
         }
     })
-
 })
 
+app.post('/updateUserDetails/:userId', upload.single('userImage'), (req, res)=>{
+    console.log(req.body, req.file);
+    User.findById(req.params.userId.trim(), (err, foundUser)=>{
+        if(!err){
+            let error = false, userDetailsChanged = false;
+           
+            // Check for changes
+            if(req.body.firstname.length !== 0){
+                foundUser.userInfo.firstname = req.body.firstname;
+            }
+            if(req.body.lastname.length !== 0){
+                foundUser.userInfo.lastname = req.body.lastname;
+            }
+            if(req.body.mobileNumber.length !== 0){
+                if(req.body.mobileNumber.length === 10){
+                    foundUser.userInfo.mobileNumber = req.body.mobileNumber;
+                    userDetailsChanged = true;
+                }
+                else{
+                    error = 'Mobile Number should be of 10 digits';
+                }
+            }
+            if(req.body.favouriteBooks.length !== 0){
+                const books = req.body.favouriteBooks.split(',');
+
+                books.forEach((book)=>{
+                    foundUser.userInfo.favouriteBooks.push({name: book});
+                })
+                userDetailsChanged = true;
+            }
+            if(req.body.firstname.length != 0 || req.body.lastname != 0){
+                userDetailsChanged = true;
+            }
+            if(req.file !== undefined){
+                if(req.file.size / 1000000 < 16){
+                    foundUser.userInfo.userImage = req.file.buffer;
+                    foundUser.userInfo.userImageType = req.file.mimetype;
+                    userDetailsChanged = true;
+                }
+                else{
+                    error = 'Image should be less than 16 MB';
+                }
+            }
+
+            if(userDetailsChanged && !error){
+                foundUser.save((err)=>{
+                    if(!err){
+                        console.log(`updated details for user: ${req.params.userId}`);
+                    }
+                })
+            }
+
+            res.json({error: error});
+        }
+    })
+})
 app.listen(3000, ()=>{
     console.log('The server is running on PORT 3000');
 })

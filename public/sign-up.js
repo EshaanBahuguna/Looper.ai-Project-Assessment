@@ -16,24 +16,30 @@ submitButton.addEventListener('click', (event)=>{
     else if(formData.get("password") !== formData.get("checkPassword")){
         showAlertBox("Password's do not match", 'red');
     }
-    else if(formData.get('userId').size != 0){
-        if(formData.get('userId') / 1000000 >= 16){
-            showAlertBox('Image should be less than 16 MB', 'red');
-        }
-    }
     else{
         // Check if account already exists
-        fetch(`/getAccountDetails/${formData.get("email")}`)
+        console.log(formData);
+        fetch(`/checkAccountExists/${formData.get("email")}`)
         .then(response => response.json())
         .then((response)=> {
             console.log(response);
             if(response.accountExists){
+                console.log(response)
                 showAlertBox('Account with the same email address already exists', 'red');
             }
             else{
+                console.log('sending details for DB')
                 fetch('/sign-up', {
                     method: 'POST', 
-                    body: formData
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        firstname: formData.get('firstname'),
+                        lastname: formData.get('lastname'),
+                        mobileNumber: formData.get('mobileNumber'),
+                        email: formData.get('email'),
+                        password: formData.get('password'),
+                        checkPassword: formData.get('checkPassword'),
+                    })
                 })
                 .then(res => res.json())
                 .then((res)=> {

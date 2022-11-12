@@ -8,7 +8,7 @@ submitButton.addEventListener('click', (event)=>{
     const formData = new FormData(document.querySelector('form'));
     
     // Check if no Account exists
-    fetch(`/getAccountDetails/${formData.get('email')}`)
+    fetch(`/checkAccountExists/${formData.get('email')}`)
     .then((response)=> response.json())
     .then((response)=>{
         // Redirect to sign-up page if no such account exists
@@ -37,7 +37,9 @@ submitButton.addEventListener('click', (event)=>{
                     }, 1500)
                 }  
                 else{
-                    location.href = '/home';
+                    setTimeout(()=>{
+                        location.href = `/home/${res.userId}`;
+                    }, 1000);
                 }  
             })
         }
