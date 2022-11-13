@@ -170,7 +170,7 @@ allBooksButton.addEventListener('click', (event)=>{
 
             // Check if book is checkout-out or not
             let button = document.createElement('button');
-            if(book.details.issuedBy === null){
+            if(book.details.issuedBy === null || book.details.issuedBy.length === 0){
                 button.className = 'btn btn-primary issue-book'; 
                 button.innerText = 'Issue Book';
                 button.value = book.details._id;
@@ -284,10 +284,28 @@ function loadUsersBooks(){
                         <div class="card-body d-flex flex-column justify-content-center align-items-center">
                             <h6 class="card-title">${book.details.name}</h6>
                             <p class="card-text fw-light text-center">${book.details.description}</p>
-                            <a class="btn btn-danger" value="${book.details._id}">Return</a>
+                            <button class="btn btn-danger return-book-button" value="${book.details._id}">Return</button>
                         </div>
                     </div>
                 `;
+            })
+
+            // Event Delegation for Return-Book-Button
+            outputResult.addEventListener('click', (event)=>{
+                if(event.target.className.indexOf("return-book-button") !== -1){
+                    console.log(event.target.value, event.target);
+                    fetch(`/returnBook/${userId}`, {
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify({bookId: event.target.value})
+                    })
+                    .then(res => res.json())
+                    .then((res)=>{
+                        if(res.removed){
+                            event.target.parentElement.parentElement.remove();
+                        }
+                    })
+                }
             })
         }
     })

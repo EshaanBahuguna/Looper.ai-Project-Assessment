@@ -334,7 +334,22 @@ app.post('/issueBook/:userId', (req, res)=>{
             })
         }
     })
+})
 
+app.post('/returnBook/:userId', (req, res)=>{
+    // Remove book from issued-books field
+    User.findByIdAndUpdate(req.params.userId.trim(), {$pull: {"userInfo.issuedBooks": {_id: req.body.bookId}}},(err)=>{
+        if(!err){
+            console.log('book: ' + req.body.bookId + " removed from user: " + req.params.userId);
+            //Update issued-by field for the book
+            Book.findByIdAndUpdate(req.body.bookId, {$set: {issuedBy: null}}, (error)=>{
+                if(!error){
+                    console.log('Book issued-by set to null');
+                    res.json({removed: true});
+                }
+            })
+        }
+    })
 })
 
 app.listen(3000, ()=>{
