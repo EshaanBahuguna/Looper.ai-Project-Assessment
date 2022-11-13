@@ -4,7 +4,9 @@ const   userId = document.querySelector('#user-id').value,
         updateDetailsButton = document.querySelector('#update-details-button'), 
         addBookButton = document.querySelector('#add-book-button'), 
         allBooksButton = document.querySelector('#all-books'), 
-        userBooksButton = document.querySelector('#user-books');
+        userBooksButton = document.querySelector('#user-books'), 
+        removeUsersButton = document.querySelector('#remove-users-button'), 
+        removeBooksButton = document.querySelector('#remove-books-button');
 
 loadUserImage();
 loadUsersBooks();
@@ -214,6 +216,99 @@ userBooksButton.addEventListener('click', (event)=>{
     loadUsersBooks();
 })
 
+removeUsersButton.addEventListener('click', (event)=>{
+    event.preventDefault();
+
+    outputSectionTitle.innerText = 'Delete Users';
+    outputResult.innerHTML = '';
+
+    // Get all user-id's except that of the current user
+    fetch(`/getAllUsers/${userId}`)
+    .then(response => response.json())
+    .then((response)=>{
+        response.userIds.forEach((userId)=>{
+            outputResult.innerHTML += `
+                <div class="card" style="width: 20rem">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0"><span class="fw-semibold">${userId}</span> <button style="border: none; background-color: none;" value="${userId}"><i class="fa-solid fa-xmark delete-user-button"></i></button></li>
+                    </ul>
+                </div>
+            `;
+        })
+
+        // Event Delegation for delete-user-button
+        outputResult.addEventListener('click', (e)=>{
+            if(e.target.className.indexOf("delete-user-button") !== -1){
+                fetch('/deleteUser', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({userId: e.target.parentElement.value})
+                })
+                .then(res => res.json())
+                .then((res)=>{
+                    console.log(res);
+                    if(res.deleted){
+                        e.target.parentElement.parentElement.remove();
+                        const div = createAlertBox('user ' + res.userId + ' deleted successfully');
+
+                        outputResult.appendChild(div);
+                        setTimeout(()=>{
+                            div.remove();
+                        }, 1500);
+                    }
+                })
+            }
+        })
+    })
+})
+
+removeBooksButton.addEventListener('click', (event)=>{
+    event.preventDefault();
+
+    fetch('/allBooks')
+    .then(response => response.json())
+    .then((response)=>{
+        outputResult.innerHTML = '';
+        outputSectionTitle.innerText = 'All Books';
+
+        response.foundBooks.forEach((book)=>{
+            outputResult.innerHTML += `
+                <div class="card mb-3 px-0" style="width: 18rem;">
+                    <img src="data:${book.image.type};base64,${book.image.data}" class="card-img-top" style="height: 7rem">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h6 class="card-title">${book.details.name}</h6>
+                        <p class="card-text fw-light text-center">${book.details.description}</p>
+                        <button class="btn btn-danger delete-book-button" value="${book.details._id}">Delete</button>
+                    </div>
+                </div>
+            `;
+        })
+
+        // Event Delegation for Delete-Book Button
+        outputResult.addEventListener('click', (e)=>{
+            if(e.target.className.indexOf('delete-book-button') !== -1){
+                fetch(`/deleteBook`, {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({bookId: e.target.value})
+                })
+                .then(res => res.json())
+                .then((res)=>{
+                    if(res.deleted){
+                        e.target.parentElement.parentElement.remove();
+                        const div = createAlertBox('The book was successfully deleted');
+
+                        outputResult.appendChild(div);
+                        setTimeout(()=>{
+                            div.remove();
+                        }, 1500);
+                    }
+                })
+            }
+        })
+    })
+})
+
 //Event Listener for close button
 function loadCancelButton(){
     document.querySelector('#close-button').addEventListener('click', (event)=>{
@@ -284,7 +379,7 @@ function loadUsersBooks(){
                         <div class="card-body d-flex flex-column justify-content-center align-items-center">
                             <h6 class="card-title">${book.details.name}</h6>
                             <p class="card-text fw-light text-center">${book.details.description}</p>
-                            <button class="btn btn-danger return-book-button" value="${book.details._id}">Return</button>
+                            <button class="btn btn-warning return-book-button" value="${book.details._id}">Return</button>
                         </div>
                     </div>
                 `;

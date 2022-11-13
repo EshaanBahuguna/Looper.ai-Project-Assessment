@@ -102,6 +102,9 @@ app.get('/getIssuedBooks/:userId', (req, res)=>{
         if(!err){
             let userIssuedBooks = [], responseReady = false;
             
+            if(foundUser.userInfo.issuedBooks.length === 0){
+                responseReady = true;
+            }
             for(let i = 0; i < foundUser.userInfo.issuedBooks.length; i++){
                 Book.findById(foundUser.userInfo.issuedBooks[i]._id, (err, foundBook)=>{
                     if(!err){
@@ -120,13 +123,14 @@ app.get('/getIssuedBooks/:userId', (req, res)=>{
                         if(i === foundUser.userInfo.issuedBooks.length-1){
                             responseReady = true;
                         }
-                        if(responseReady){
-                            res.json({issuedBooks: userIssuedBooks})
-                        }
                     }
                 })
             }   
-            
+            setTimeout(()=>{
+                if(responseReady){
+                    res.json({issuedBooks: userIssuedBooks})
+                }
+            }, 1000);
         }
     })
 })
@@ -153,6 +157,21 @@ app.get('/allBooks', (req, res)=>{
             })
 
             res.json({foundBooks: allBooks});
+        }
+    })
+})
+
+app.get('/getAllUsers/:userId', (req, res)=>{
+    User.find({}, (err, foundUsers)=>{
+        if(!err){
+            let userIds = [];
+            foundUsers.forEach((user)=>{
+                if(String(user._id) !== req.params.userId){
+                    userIds.push(user._id);
+                }
+            })
+
+            res.json({userIds: userIds});
         }
     })
 })
@@ -348,6 +367,25 @@ app.post('/returnBook/:userId', (req, res)=>{
                     res.json({removed: true});
                 }
             })
+        }
+    })
+})
+
+app.post('/deleteUser', (req, res)=>{
+    User.findByIdAndDelete(req.body.userId, (err, foundUser)=>{
+        if(!err && foundUser !== null){
+            console.log('user ' + req.body.userId + ' deleted from DB');
+            res.json({deleted: true, userId: req.body.userId});
+        }
+    })
+})
+
+app.post('/deleteBook', (req, res)=>{
+    console.log(req.body);
+    Book.findByIdAndDelete(req.body.bookId, (err, foundUser)=>{
+        if(!err && foundUser !== null){
+            console.log('Book ' + req.body.bookId + ' deleted from DB');
+            res.json({deleted: true});
         }
     })
 })
