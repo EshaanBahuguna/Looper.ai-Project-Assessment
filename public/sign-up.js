@@ -17,39 +17,46 @@ submitButton.addEventListener('click', (event)=>{
         showAlertBox("Password's do not match", 'red');
     }
     else{
-        // Check if account already exists
-        console.log(formData);
-        fetch(`/checkAccountExists/${formData.get("email")}`)
-        .then(response => response.json())
-        .then((response)=> {
-            console.log(response);
-            if(response.accountExists){
-                console.log(response)
-                showAlertBox('Account with the same email address already exists', 'red');
-            }
-            else{
-                console.log('sending details for DB')
-                fetch('/sign-up', {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        firstname: formData.get('firstname'),
-                        lastname: formData.get('lastname'),
-                        mobileNumber: formData.get('mobileNumber'),
-                        email: formData.get('email'),
-                        password: formData.get('password'),
-                        checkPassword: formData.get('checkPassword'),
+        let pos1 = formData.get("email").indexOf('@');
+        let pos2 = formData.get("email").indexOf('.');
+
+        if(pos1 !== -1 && pos2 !== -1 && pos2-pos1 >= 2){
+            // Check if account already exists
+            console.log(formData);
+            fetch(`/checkAccountExists/${formData.get("email")}`)
+            .then(response => response.json())
+            .then((response)=> {
+                if(response.accountExists){
+                    console.log(response)
+                    showAlertBox('Account with the same email address already exists', 'red');
+                }
+                else{
+                    console.log('sending details for DB')
+                    fetch('/sign-up', {
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            firstname: formData.get('firstname'),
+                            lastname: formData.get('lastname'),
+                            mobileNumber: formData.get('mobileNumber'),
+                            email: formData.get('email'),
+                            password: formData.get('password'),
+                            checkPassword: formData.get('checkPassword'),
+                        })
                     })
-                })
-                .then(res => res.json())
-                .then((res)=> {
-                    showAlertBox(res.message, 'green');
-                    setTimeout(()=>{
-                        location.href = '/login';
-                    }, 2500)
-                })
-            }
-        })
+                    .then(res => res.json())
+                    .then((res)=> {
+                        showAlertBox(res.message, 'green');
+                        setTimeout(()=>{
+                            location.href = '/login';
+                        }, 2500)
+                    })
+                }
+            })
+        }
+        else{
+            showAlertBox("Enter a valid email address", 'red')
+        }
     }
 })
 

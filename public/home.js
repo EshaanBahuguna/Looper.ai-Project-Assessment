@@ -103,7 +103,7 @@ addBookButton.addEventListener('click', (event)=>{
                         <label for="name" class="mb-2">Name of the Book<span class="text-red mx-1">*</span></label>
                         <input type="text" name="bookname" id="book-name" class="form-control">
                     </div>
-                    <div class="col">
+                    <div class="col" id="upload-book-image-section">
                         <label for="book-image" class="mb-2">Image</label>
                         <input type="file" name="bookImage" id="book-image" class="form-control" accept=".jpeg, .jpg, .png">
                     </div>
@@ -295,6 +295,61 @@ searchBar.addEventListener('keyup', (event)=>{
     }
 })
 
+// Event Delegation for Output Results Section 
+outputResult.addEventListener('click', (event)=>{
+    event.preventDefault();
+
+    // For Issuing a new book
+    if(event.target.className.indexOf('issue-book') !== -1){
+        fetch(`/issueBook/${userId}`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({bookId: event.target.value})
+        })
+        .then(res => res.json())
+        .then((res)=>{
+            if(res.issued){
+               event.target.disabled = true;
+               event.target.className = 'btn btn-warning';
+               event.target.innerText = 'Issued';
+               issuedBooksNumber(); 
+            }
+        })
+    }
+
+    // For Returning an issued book
+    if(event.target.className.indexOf("return-book-button") !== -1){
+        fetch(`/returnBook/${userId}`, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({bookId: event.target.value})
+        })
+        .then(res => res.json())
+        .then((res)=>{
+            if(res.removed){
+                event.target.parentElement.parentElement.remove();
+                issuedBooksNumber();
+            }
+        })
+    }
+
+    // For upload book image
+    if(event.target.hasAttribute('type') && event.target.type === 'file'){
+        // event.target.submit();
+        let input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.jpeg, .jpg, .png';
+        input.className = 'form-control';
+        input.id = 'book-image';
+        input.name = 'bookImage';
+        input.onchange = (e)=>{
+            document.querySelector('#upload-book-image-section input[type="file"]').remove();
+            document.querySelector('#upload-book-image-section').appendChild(input);
+        }
+        input.click();
+    }
+})
+
 //Event Listener for close button
 function loadCancelButton(){
     document.querySelector('#close-button').addEventListener('click', (event)=>{
@@ -358,6 +413,7 @@ function loadUsersBooks(){
             `;
         }
         else{
+            // Displaying issued books
             response.issuedBooks.forEach((book)=>{
                 outputResult.innerHTML += `
                     <div class="card mb-3 px-0" style="width: 18rem;">
@@ -372,24 +428,6 @@ function loadUsersBooks(){
             })
 
             issuedBooksNumber();
-
-            // Event Delegation for Return-Book-Button
-            outputResult.addEventListener('click', (event)=>{
-                if(event.target.className.indexOf("return-book-button") !== -1){
-                    fetch(`/returnBook/${userId}`, {
-                        method: 'POST', 
-                        headers: {'Content-Type': 'application/json'}, 
-                        body: JSON.stringify({bookId: event.target.value})
-                    })
-                    .then(res => res.json())
-                    .then((res)=>{
-                        if(res.removed){
-                            event.target.parentElement.parentElement.remove();
-                            issuedBooksNumber();
-                        }
-                    })
-                }
-            })
         }
     })
 }
@@ -420,26 +458,6 @@ function displayBooks(books){
         }
 
         outputResult.lastElementChild.lastElementChild.appendChild(button);
-    })
-
-    // Event Delegation for Issue-Book Button
-    outputResult.addEventListener('click', (event)=>{
-        if(event.target.className.indexOf('issue-book') !== -1){
-            fetch(`/issueBook/${userId}`, {
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({bookId: event.target.value})
-            })
-            .then(res => res.json())
-            .then((res)=>{
-                if(res.issued){
-                   event.target.disabled = true;
-                   event.target.className = 'btn btn-warning';
-                   event.target.innerText = 'Issued';
-                   issuedBooksNumber(); 
-                }
-            })
-        }
     })
 }
 

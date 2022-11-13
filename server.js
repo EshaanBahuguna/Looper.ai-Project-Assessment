@@ -422,7 +422,6 @@ app.post('/deleteUser', (req, res)=>{
 })
 
 app.post('/deleteBook', (req, res)=>{
-    console.log(req.body);
     Book.findByIdAndDelete(req.body.bookId, (err, foundUser)=>{
         if(!err && foundUser !== null){
             console.log('Book ' + req.body.bookId + ' deleted from DB');
