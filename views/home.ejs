@@ -4,14 +4,14 @@
     <input type="hidden" id="user-id" value="<%= userId %>">
     <nav class="row mb-4">
         <div class="col text-center">
-            <a class="fs-2 fw-semibold text-dark">My Books</a>
+            <a class="fs-3 fw-semibold btn btn-primary" id="user-books">My Books</a>
         </div>
         <div class="col-8 d-flex justify-content-center position-relative">
             <input type="text" id="search-bar" class="py-2 form-control text-bg-light px-3" style="width: 50rem;">
             <i class="fa-solid fa-2x fa-magnifying-glass position-absolute" style="right: 150px; top: 8px"></i>
         </div>
         <div class="col text-center">
-            <a class="fs-2 fw-semibold text-dark">All Books</a>
+            <a class="fs-3 fw-semibold btn btn-success" id="all-books">All Books</a>
         </div>
     </nav>
     <div class="card">
@@ -46,7 +46,7 @@
                 </div>
                 <div class="col-8 py-4" id="output-section" >
                     <div class="row mb-3">
-                        <h3 class="fw-bold mx-3">My Books</h3>
+                        <h3 class="fw-semibold mx-3">My Books</h3>
                     </div>
                     <div class="row" id="output-results" style="padding-left: 2rem;">
                         <!-- <div class="card mb-3" style="width: 18rem;">

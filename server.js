@@ -97,12 +97,15 @@ app.get('/loadUserImage/:userId', (req, res)=>{
 })
 
 app.get('/getIssuedBooks/:userId', (req, res)=>{
+    console.log(req.params)
     User.findById(req.params.userId.trim(), (err, foundUser)=>{
         if(!err){
-            let userIssuedBooks = [];
-            foundUser.userInfo.issuedBooks.forEach((bookId)=>{
-                User.findById(bookId, (err, foundBook)=>{
+            let userIssuedBooks = [], responseReady = false;
+            
+            for(let i = 0; i < foundUser.userInfo.issuedBooks.length; i++){
+                Book.findById(foundUser.userInfo.issuedBooks[i]._id, (err, foundBook)=>{
                     if(!err){
+                        console.log(foundBook.name);
                         userIssuedBooks.push({
                             details: {
                                 _id: foundBook._id,
@@ -114,11 +117,42 @@ app.get('/getIssuedBooks/:userId', (req, res)=>{
                                 type: foundBook.type
                             }
                         })
+                        if(i === foundUser.userInfo.issuedBooks.length-1){
+                            responseReady = true;
+                        }
+                        if(responseReady){
+                            res.json({issuedBooks: userIssuedBooks})
+                        }
+                    }
+                })
+            }   
+            
+        }
+    })
+})
+
+app.get('/allBooks', (req, res)=>{
+    Book.find({}, (err, foundBooks)=>{
+        if(!err){
+            let allBooks = [];
+
+            // Converting buffer to base64 
+            foundBooks.forEach((book)=>{
+                allBooks.push({
+                    details: {
+                        _id: book._id,
+                        name: book.name, 
+                        description: book.description, 
+                        issuedBy: book.issuedBy
+                    }, 
+                    image: {
+                        data: book.image.toString('base64').trim(), 
+                        type: book.type
                     }
                 })
             })
 
-            res.json({issuedBooks: userIssuedBooks});
+            res.json({foundBooks: allBooks});
         }
     })
 })
@@ -248,6 +282,7 @@ app.post('/addBook', upload.single('bookImage'), (req, res)=>{
     console.log(req.body, req.file);
     let bookImage = fs.readFileSync(__dirname + '/public/images/book image.jpg'),
         imageType = 'image/jpg';
+
     let error = false, message;
     
     if(req.body.bookname.length === 0 || req.body.description.length === 0){
@@ -264,25 +299,42 @@ app.post('/addBook', upload.single('bookImage'), (req, res)=>{
             imageType = req.file.mimetype;
         }   
     }
-    else{
-        if(!error){
-            // Save Book Details to DB
-            const newBook = new Book({
-                name: req.body.name, 
-                description: req.body.description, 
-                image: bookImage, 
-                type: imageType, 
-                issuedBy: null
-            });
-            newBook.save((err)=>{
-                if(!err){
-                    console.log('New Book was added to DB');
+    
+    if(!error){
+        // Save Book Details to DB
+        const newBook = new Book({
+            name: req.body.bookname, 
+            description: req.body.description, 
+            image: bookImage, 
+            type: imageType, 
+            issuedBy: null
+        });
+        newBook.save((err)=>{
+            if(!err){
+                console.log('New Book was added to DB');
+            }
+        })
+    }
+    
+    console.log("Error:" + error);
+    res.json({error: error, message: message});
+})
+
+app.post('/issueBook/:userId', (req, res)=>{
+    // Update issued-by field for the book
+    Book.findByIdAndUpdate(req.body.bookId.trim(), {$set: {issuedBy: req.params.userId}}, (err)=>{
+        if(!err){
+            console.log('Book: ' + req.body.bookId + " issued by: " + req.params.userId);
+            // Pushing book-id to issued-books field
+            User.findByIdAndUpdate(req.params.userId, {$push: {"userInfo.issuedBooks": {_id: req.body.bookId.trim()}}}, (error)=>{
+                if(!error){
+                    console.log('Book added to issued-books');
+                    res.json({issued: true});
                 }
             })
         }
-    }
+    })
 
-    res.json({error: error, message: message});
 })
 
 app.listen(3000, ()=>{

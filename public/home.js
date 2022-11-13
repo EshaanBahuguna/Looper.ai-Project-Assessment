@@ -2,7 +2,9 @@ const   userId = document.querySelector('#user-id').value,
         outputSectionTitle = document.querySelector('#output-section h3'), 
         outputResult = document.querySelector('#output-results'), 
         updateDetailsButton = document.querySelector('#update-details-button'), 
-        addBookButton = document.querySelector('#add-book-button');
+        addBookButton = document.querySelector('#add-book-button'), 
+        allBooksButton = document.querySelector('#all-books'), 
+        userBooksButton = document.querySelector('#user-books');
 
 loadUserImage();
 loadUsersBooks();
@@ -123,6 +125,7 @@ addBookButton.addEventListener('click', (event)=>{
         })
         .then(response => response.json())
         .then((response)=>{
+            console.log(response);
             let div
             if(response.error){
                 div = createAlertBox(response.message);
@@ -135,11 +138,80 @@ addBookButton.addEventListener('click', (event)=>{
             outputResult.appendChild(div);
             setTimeout(()=>{
                 div.style.display = 'none';
+
+                document.querySelector('#book-name').value = '';
+                document.querySelector('#description').value = '';
             }, 2000);
         })
     })
 
     loadCancelButton();
+})
+
+allBooksButton.addEventListener('click', (event)=>{
+    event.preventDefault();
+
+    fetch('/allBooks')
+    .then(response => response.json())
+    .then((response)=>{
+        outputResult.innerHTML = '';
+        outputSectionTitle.innerText = 'All Books';
+
+        response.foundBooks.forEach((book)=>{
+            outputResult.innerHTML += `
+                <div class="card mb-3 px-0" style="width: 18rem;">
+                    <img src="data:${book.image.type};base64,${book.image.data}" class="card-img-top" style="height: 7rem">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h6 class="card-title">${book.details.name}</h6>
+                        <p class="card-text fw-light text-center">${book.details.description}</p>
+                    </div>
+                </div>
+            `;
+
+            // Check if book is checkout-out or not
+            let button = document.createElement('button');
+            if(book.details.issuedBy === null){
+                button.className = 'btn btn-primary issue-book'; 
+                button.innerText = 'Issue Book';
+                button.value = book.details._id;
+            }
+            else{
+                button.className = 'btn btn-warning';
+                button.innerText = 'Checked Out';
+                button.disabled = true;
+            }
+
+            outputResult.lastElementChild.lastElementChild.appendChild(button);
+        })
+
+        // Event Delegation for Issue-Book Button
+        outputResult.addEventListener('click', (event)=>{
+            if(event.target.className.indexOf('issue-book') !== -1){
+                fetch(`/issueBook/${userId}`, {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({bookId: event.target.value})
+                })
+                .then(res => res.json())
+                .then((res)=>{
+                    if(res.issued){
+                       event.target.disabled = true;
+                       event.target.className = 'btn btn-warning';
+                       event.target.innerText = 'Issued'; 
+                    }
+                })
+            }
+        })
+    })
+})
+
+userBooksButton.addEventListener('click', (event)=>{
+    event.preventDefault();
+
+    outputSectionTitle.innerText = 'My Books';
+    outputResult.innerHTML = '';
+
+    loadUsersBooks();
 })
 
 //Event Listener for close button
@@ -172,8 +244,6 @@ function loadUserImage(){
     fetch(`/loadUserImage/${userId}`)
     .then(response => response.json())
     .then((response)=>{
-        console.log(response);
-
         let img = document.createElement('img');
         img.src = `data:${response.type};base64,${response.image}`;
         img.id = 'user-image';
@@ -193,6 +263,7 @@ function loadUsersBooks(){
     fetch(`/getIssuedBooks/${userId}`)
     .then(response => response.json())
     .then((response)=>{
+        console.log(response);
         outputSectionTitle.innerText = 'My Books';
         outputResult.innerHTML = '';
 
@@ -208,8 +279,8 @@ function loadUsersBooks(){
         else{
             response.issuedBooks.forEach((book)=>{
                 outputResult.innerHTML += `
-                    <div class="card mb-3" style="width: 18rem;">
-                        <img class="card-img-top" style="height: 7rem" src="data/${book.image.type};base64,${book.image.data}">
+                    <div class="card mb-3 px-0" style="width: 18rem;">
+                        <img class="card-img-top" style="height: 7rem" src="data:${book.image.type};base64,${book.image.data}">
                         <div class="card-body d-flex flex-column justify-content-center align-items-center">
                             <h6 class="card-title">${book.details.name}</h6>
                             <p class="card-text fw-light text-center">${book.details.description}</p>
