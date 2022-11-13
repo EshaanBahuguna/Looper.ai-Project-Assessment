@@ -6,10 +6,13 @@ const   userId = document.querySelector('#user-id').value,
         allBooksButton = document.querySelector('#all-books'), 
         userBooksButton = document.querySelector('#user-books'), 
         removeUsersButton = document.querySelector('#remove-users-button'), 
-        removeBooksButton = document.querySelector('#remove-books-button');
+        removeBooksButton = document.querySelector('#remove-books-button'), 
+        searchBar = document.querySelector('#search-bar');
 
 loadUserImage();
 loadUsersBooks();
+issuedBooksNumber();
+loadUserFavouriteBooks();
 
 // Event Listeners
 updateDetailsButton.addEventListener('click', (event)=>{
@@ -143,6 +146,7 @@ addBookButton.addEventListener('click', (event)=>{
 
                 document.querySelector('#book-name').value = '';
                 document.querySelector('#description').value = '';
+                document.querySelector('#output-results input[type="file"]').value = '';
             }, 2000);
         })
     })
@@ -159,51 +163,7 @@ allBooksButton.addEventListener('click', (event)=>{
         outputResult.innerHTML = '';
         outputSectionTitle.innerText = 'All Books';
 
-        response.foundBooks.forEach((book)=>{
-            outputResult.innerHTML += `
-                <div class="card mb-3 px-0" style="width: 18rem;">
-                    <img src="data:${book.image.type};base64,${book.image.data}" class="card-img-top" style="height: 7rem">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <h6 class="card-title">${book.details.name}</h6>
-                        <p class="card-text fw-light text-center">${book.details.description}</p>
-                    </div>
-                </div>
-            `;
-
-            // Check if book is checkout-out or not
-            let button = document.createElement('button');
-            if(book.details.issuedBy === null || book.details.issuedBy.length === 0){
-                button.className = 'btn btn-primary issue-book'; 
-                button.innerText = 'Issue Book';
-                button.value = book.details._id;
-            }
-            else{
-                button.className = 'btn btn-warning';
-                button.innerText = 'Checked Out';
-                button.disabled = true;
-            }
-
-            outputResult.lastElementChild.lastElementChild.appendChild(button);
-        })
-
-        // Event Delegation for Issue-Book Button
-        outputResult.addEventListener('click', (event)=>{
-            if(event.target.className.indexOf('issue-book') !== -1){
-                fetch(`/issueBook/${userId}`, {
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({bookId: event.target.value})
-                })
-                .then(res => res.json())
-                .then((res)=>{
-                    if(res.issued){
-                       event.target.disabled = true;
-                       event.target.className = 'btn btn-warning';
-                       event.target.innerText = 'Issued'; 
-                    }
-                })
-            }
-        })
+        displayBooks(response.foundBooks);
     })
 })
 
@@ -309,6 +269,32 @@ removeBooksButton.addEventListener('click', (event)=>{
     })
 })
 
+searchBar.addEventListener('keyup', (event)=>{
+    if(event.key === 'Enter'){
+        const search = event.target.value;
+        
+        fetch(`/getBook/${search}`, {
+        })
+        .then(response => response.json())
+        .then((response)=>{
+            outputSectionTitle.innerHTML = `Search for <span class="fst-italic fw-light"> ${search} </span>`;
+            outputResult.innerHTML = '';
+
+            if(response.booksFound.length === 0){
+                outputResult.innerHTML += `
+                <div class="text-center text-bg-light py-5 px-0 rounded" style="width: 100%; grid-column-start: 1; grid-column-end: 4; margin-top: 10rem;"> 
+                    <i class="fa-solid fa-face-frown fa-4x" style="color: #d3d3d3"></i>
+                    <p class="mt-4 fw-semibold fs-2" style="color: #d3d3d3"> No books found </p> 
+                </div>
+                `;
+            }
+            else{
+                displayBooks(response.booksFound);
+            }
+        })
+    }
+})
+
 //Event Listener for close button
 function loadCancelButton(){
     document.querySelector('#close-button').addEventListener('click', (event)=>{
@@ -375,7 +361,7 @@ function loadUsersBooks(){
             response.issuedBooks.forEach((book)=>{
                 outputResult.innerHTML += `
                     <div class="card mb-3 px-0" style="width: 18rem;">
-                        <img class="card-img-top" style="height: 7rem" src="data:${book.image.type};base64,${book.image.data}">
+                        <img class="card-img-top" style="height: 10rem" src="data:${book.image.type};base64,${book.image.data}">
                         <div class="card-body d-flex flex-column justify-content-center align-items-center">
                             <h6 class="card-title">${book.details.name}</h6>
                             <p class="card-text fw-light text-center">${book.details.description}</p>
@@ -385,10 +371,11 @@ function loadUsersBooks(){
                 `;
             })
 
+            issuedBooksNumber();
+
             // Event Delegation for Return-Book-Button
             outputResult.addEventListener('click', (event)=>{
                 if(event.target.className.indexOf("return-book-button") !== -1){
-                    console.log(event.target.value, event.target);
                     fetch(`/returnBook/${userId}`, {
                         method: 'POST', 
                         headers: {'Content-Type': 'application/json'}, 
@@ -398,6 +385,7 @@ function loadUsersBooks(){
                     .then((res)=>{
                         if(res.removed){
                             event.target.parentElement.parentElement.remove();
+                            issuedBooksNumber();
                         }
                     })
                 }
@@ -406,3 +394,72 @@ function loadUsersBooks(){
     })
 }
 
+function displayBooks(books){
+    books.forEach((book)=>{
+        outputResult.innerHTML += `
+            <div class="card mb-3 px-0" style="width: 18rem;">
+                <img src="data:${book.image.type};base64,${book.image.data}" class="card-img-top" style="height: 10rem">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                    <h6 class="card-title">${book.details.name}</h6>
+                    <p class="card-text fw-light text-center">${book.details.description}</p>
+                </div>
+            </div>
+        `;
+
+        // Check if book is checkout-out or not
+        let button = document.createElement('button');
+        if(book.details.issuedBy === null || book.details.issuedBy.length === 0){
+            button.className = 'btn btn-primary issue-book'; 
+            button.innerText = 'Issue Book';
+            button.value = book.details._id;
+        }
+        else{
+            button.className = 'btn btn-warning';
+            button.innerText = 'Checked Out';
+            button.disabled = true;
+        }
+
+        outputResult.lastElementChild.lastElementChild.appendChild(button);
+    })
+
+    // Event Delegation for Issue-Book Button
+    outputResult.addEventListener('click', (event)=>{
+        if(event.target.className.indexOf('issue-book') !== -1){
+            fetch(`/issueBook/${userId}`, {
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({bookId: event.target.value})
+            })
+            .then(res => res.json())
+            .then((res)=>{
+                if(res.issued){
+                   event.target.disabled = true;
+                   event.target.className = 'btn btn-warning';
+                   event.target.innerText = 'Issued';
+                   issuedBooksNumber(); 
+                }
+            })
+        }
+    })
+}
+
+function issuedBooksNumber(){
+    fetch(`/getIssuedBooksNumber/${userId}`)
+    .then(response => response.json())
+    .then((response)=>{
+        document.querySelector('#issued-books-number').innerText = response.issuedBooksNumber;
+    })
+}
+
+function loadUserFavouriteBooks(){
+    fetch(`/getFavouriteBooks/${userId}`)
+    .then(response => response.json())
+    .then((response)=> {
+        response.favouriteBooks.forEach((book)=>{
+            document.querySelector('#favourite-books').innerHTML += `
+            <li class="list-group-item">${book.name}</li>
+            `;
+
+        })
+    })
+}

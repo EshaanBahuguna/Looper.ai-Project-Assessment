@@ -150,7 +150,7 @@ app.get('/allBooks', (req, res)=>{
                         issuedBy: book.issuedBy
                     }, 
                     image: {
-                        data: book.image.toString('base64').trim(), 
+                        data: book.image.toString('base64'), 
                         type: book.type
                     }
                 })
@@ -172,6 +172,47 @@ app.get('/getAllUsers/:userId', (req, res)=>{
             })
 
             res.json({userIds: userIds});
+        }
+    })
+})
+
+app.get('/getBook/:search', (req, res)=>{
+    Book.find({}, (err, foundBooks)=>{
+        if(!err){
+            let booksFound = [];
+            foundBooks.forEach((book)=>{
+                if(book.name.toLowerCase().indexOf(req.params.search) != -1){
+                    booksFound.push({
+                        details: {
+                            _id: book._id,
+                            name: book.name, 
+                            description: book.description, 
+                            issuedBy: book.issuedBy
+                        }, 
+                        image: {
+                            data: book.image.toString('base64'), 
+                            type: book.type
+                        }
+                    })
+                }
+            })
+            res.json({booksFound: booksFound});
+        }
+    })
+})
+
+app.get('/getIssuedBooksNumber/:userId', (req, res)=>{
+    User.findById(req.params.userId, (err, foundUser)=>{
+        if(!err){
+            res.json({issuedBooksNumber: foundUser.userInfo.issuedBooks.length});
+        }
+    })
+})
+
+app.get('/getFavouriteBooks/:userId', (req, res)=>{
+    User.findById(req.params.userId, (err, foundUser)=>{
+        if(!err){
+            res.json({favouriteBooks: foundUser.userInfo.favouriteBooks});
         }
     })
 })
