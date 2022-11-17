@@ -41,7 +41,7 @@ updateDetailsButton.addEventListener('click', (event)=>{
                     <label for="mobile-number" class="mb-2">Mobile Number </label>
                     <input type="number" name="mobileNumber" id="mobile-number" class="form-control">
                 </div>
-                <div class="col">
+                <div class="col" id="upload-user-image-section">
                     <label for="user-image" class="mb-2">Upload Image <span class="fw-light fst-italic">(less than 16MB) </span></label> 
                     <input type="file" class="form-control" id="user-image" name="userImage" accept=".png, .jpeg, .jpg">    
                 </div>
@@ -334,8 +334,7 @@ outputResult.addEventListener('click', (event)=>{
     }
 
     // For upload book image
-    if(event.target.hasAttribute('type') && event.target.type === 'file'){
-        // event.target.submit();
+    if(event.target.hasAttribute('type') && event.target.type === 'file' && event.target.id === 'book-image'){
         let input = document.createElement('input');
         input.type = 'file';
         input.accept = '.jpeg, .jpg, .png';
@@ -343,8 +342,23 @@ outputResult.addEventListener('click', (event)=>{
         input.id = 'book-image';
         input.name = 'bookImage';
         input.onchange = (e)=>{
-            document.querySelector('#upload-book-image-section input[type="file"]').remove();
+            document.querySelector('#book-image').remove();
             document.querySelector('#upload-book-image-section').appendChild(input);
+        }
+        input.click();
+    }
+
+    // For uploading user image
+    if(event.target.hasAttribute('type') && event.target.type === 'file' && event.target.id === 'user-image'){
+        let input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.jpeg, .jpg, .png';
+        input.className = 'form-control';
+        input.id = 'user-image';
+        input.name = 'userImage';
+        input.onchange = (e)=>{
+            document.querySelector('#upload-user-image-section input[type="file"]').remove();
+            document.querySelector('#upload-user-image-section').appendChild(input);
         }
         input.click();
     }
